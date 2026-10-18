@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quiniela — 5 fijos + 3 grupos = 8 apuestas</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    max-width: 820px; margin: 1.5rem auto; padding: 0 1rem;
+    background: #f1f5f9; color: #1e293b; line-height: 1.5;
+  }
+  h1 { color: #1e3a8a; margin: 0 0 .2rem; font-size: 1.4rem; }
+  .sub { color: #64748b; margin: 0 0 1.2rem; font-size: .9rem; }
+  .bloque { background: #fff; border-radius: 10px; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .bloque h2 { font-size: 1rem; margin: 0 0 .7rem; color: #1e3a8a; display: flex; align-items: center; gap: .5rem; }
+  .bloque h2 .badge { background: #1e3a8a; color: #fff; border-radius: 50%; width: 1.5rem; height: 1.5rem; display: inline-flex; align-items: center; justify-content: center; font-size: .85rem; }
+  .fila { display: grid; grid-template-columns: 1.8rem 1fr 1fr 4.5rem 4rem; gap: .4rem; align-items: center; margin-bottom: .35rem; }
+  .fila .num { color: #94a3b8; font-size: .8rem; text-align: center; }
+  .fila input[type="text"] { padding: .35rem .5rem; border: 1px solid #cbd5e1; border-radius: 5px; font-size: .85rem; width: 100%; }
+  .fila select { padding: .35rem; border: 1px solid #cbd5e1; border-radius: 5px; font-size: .9rem; font-weight: bold; text-align: center; background: #f8fafc; }
+  .fila select.fijo-sel { background: #fef3c7; }
+  .fila select.grupo-sel { background: #dbeafe; }
+  .fila.es-fijo { background: #fef9e7; border-radius: 5px; }
+  .fila.es-libre-sin-grupo { background: #f8fafc; border-radius: 5px; }
+  .combo { display: flex; align-items: center; gap: .5rem; padding: .45rem .6rem; border-radius: 6px; background: #f8fafc; margin-top: .3rem; cursor: pointer; font-family: monospace; font-size: 1rem; border: 2px solid transparent; }
+  .combo:hover { background: #e2e8f0; }
+  .combo.sel { background: #dbeafe; border-color: #3b82f6; }
+  .combo input { width: 18px; height: 18px; cursor: pointer; }
+  .combo .p { margin-left: auto; font-family: system-ui, sans-serif; font-size: .75rem; color: #64748b; }
+  .combo .sig { letter-spacing: .3rem; }
+  button { background: #1e3a8a; color: #fff; border: none; padding: .7rem 1.4rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: bold; width: 100%; }
+  button:hover { background: #1e40af; }
+  button:disabled { background: #94a3b8; cursor: not-allowed; }
+  .btn-sec { background: #64748b; width: auto; font-size: .85rem; padding: .5rem 1rem; margin-right: .4rem; margin-top: .4rem; }
+  .btn-sec:hover { background: #475569; }
+  .btn-rojo { background: #dc2626; width: auto; font-size: .85rem; padding: .5rem 1rem; margin-top: .4rem; }
+  .btn-rojo:hover { background: #b91c1c; }
+  .estado { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .chip { padding: .35rem .8rem; border-radius: 20px; background: #e2e8f0; font-size: .8rem; font-weight: bold; }
+  .chip.ok { background: #bbf7d0; color: #14532d; }
+  .chip.mal { background: #fecaca; color: #7f1d1d; }
+  .apuesta { font-family: monospace; font-size: 1.15rem; letter-spacing: .5rem; padding: .6rem .8rem; background: #f8fafc; border-radius: 6px; margin-bottom: .35rem; display: flex; align-items: center; }
+  .apuesta .n { font-family: system-ui, sans-serif; font-size: .75rem; color: #94a3b8; letter-spacing: 0; min-width: 1.8rem; }
+  .apuesta .f { color: #b45309; font-weight: bold; }
+  .apuesta .pr { font-family: system-ui, sans-serif; font-size: .72rem; color: #64748b; letter-spacing: 0; margin-left: auto; }
+  .info { font-size: .85rem; color: #475569; }
+  .error { color: #b91c1c; font-weight: bold; font-size: .9rem; }
+  .ok-txt { color: #15803d; font-weight: bold; font-size: .85rem; }
+  .grupo-titulo { font-weight: bold; font-size: .95rem; margin: .8rem 0 .3rem; }
+  .grupo-titulo.A { color: #2563eb; }
+  .grupo-titulo.B { color: #16a34a; }
+  .grupo-titulo.C { color: #dc2626; }
+  .btn-sug { background: #64748b; color: #fff; border: none; padding: .3rem .7rem; border-radius: 5px; cursor: pointer; font-size: .8rem; margin-top: .5rem; width: auto; }
+  .btn-sug:hover { background: #475569; }
+  .file-input { display: block; width: 100%; padding: .6rem; border: 2px dashed #cbd5e1; border-radius: 8px; background: #f8fafc; cursor: pointer; font-size: .9rem; }
+  .file-input:hover { border-color: #3b82f6; background: #eff6ff; }
+</style>
+</head>
+<body>
+
+<h1>🎯 Quiniela</h1>
+<p class="sub">Los 14 partidos se cargan solos desde GitHub · elige 5 fijos · reparte los 9 libres en 3 grupos · 2 combinaciones por grupo · 8 apuestas</p>
+
+<!-- ============ CARGA ============ -->
+<div class="bloque">
+  <h2><span class="badge">🌐</span> Carga de partidos</h2>
+  <p class="info" id="infoCarga">Cargando partidos desde GitHub...</p>
+  <button class="btn-sec" onclick="cargarDesdeGitHub()">🔄 Recargar desde GitHub</button>
+  <button class="btn-rojo" onclick="nuevaJornada()">🧹 Nueva jornada</button>
+  <hr style="border:none;border-top:1px solid #e2e8f0;margin:1rem 0">
+  <p class="info">O carga un archivo local:</p>
+  <input type="file" id="filePartidos" accept=".txt" class="file-input">
+</div>
+
+<div class="estado" id="estado"></div>
+
+<!-- ============ 14 PARTIDOS ============ -->
+<div class="bloque">
+  <h2><span class="badge">1</span> Los 14 partidos — elige 5 fijos</h2>
+  <div id="partidos"></div>
+  <p class="info" id="infoFijos">0 de 5 fijos marcados</p>
+</div>
+
+<!-- ============ GRUPOS ============ -->
+<div id="zonaGrupos"></div>
+
+<!-- ============ GENERAR ============ -->
+<div class="bloque">
+  <h2><span class="badge">✓</span> Resultado</h2>
+  <button id="btnGenerar" onclick="generar()" disabled>Generar las 8 apuestas</button>
+  <div id="resultado" style="margin-top:1rem"></div>
+</div>
+
+<script>
+"use strict";
+
+// ⚠️ CAMBIA ESTO por tu usuario y repo de GitHub
+const URL_PARTIDOS = "https://raw.githubusercontent.com/TU_USUARIO/quiniela/main/partidos.txt";
+
+const SIGNOS = ["1", "X", "2"];
+const NUM_FIJOS = 5;
+const GRUPOS = ["A", "B", "C"];
+
+let jornada = Array.from({ length: 14 }, () => ({
+  local: "",
+  visitante: "",
+  prob: { "1": 0.45, "X": 0.28, "2": 0.27 },
+  fijo: "",
+  grupo: ""
+}));
+
+let elegidas = { A: [], B: [], C: [] };
+
+function fijos() { return jornada.filter(p => p.fijo !== ""); }
+function libres() { return jornada.filter(p => p.fijo === ""); }
+function libresDeGrupo(g) { return jornada.filter(p => p.fijo === "" && p.grupo === g); }
+function libresSinGrupo() { return jornada.filter(p => p.fijo === "" && p.grupo === ""); }
+
+function dosSignos(libre) {
+  const o = SIGNOS.slice().sort((a, b) => libre.prob[b] - libre.prob[a]);
+  return [o[0], o[1]];
+}
+
+function combosGrupo(g) {
+  const libresG = libresDeGrupo(g);
+  if (libresG.length !== 3) return [];
+  const s = libresG.map(dosSignos);
+  const combos = [];
+  for (let n = 0; n < 8; n++) {
+    const signos = [s[0][(n >> 2) & 1], s[1][(n >> 1) & 1], s[2][n & 1]];
+    const p = signos.reduce((acc, sg, k) => acc * libresG[k].prob[sg], 1);
+    combos.push({ bin: n.toString(2).padStart(3, "0"), signos, p });
+  }
+  return combos;
+}
+
+// ---------------------------------------------------------------
+// CARGA DESDE GITHUB
+// ---------------------------------------------------------------
+async function cargarDesdeGitHub() {
+  const info = document.getElementById("infoCarga");
+  info.textContent = "Cargando partidos desde GitHub...";
+  try {
+    const resp = await fetch(URL_PARTIDOS + "?t=" + Date.now());
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} — ¿el repo es público y la URL es correcta?`);
+    const texto = await resp.text();
+    procesarTexto(texto);
+    info.innerHTML = `<span class="ok-txt">✅ Partidos cargados desde GitHub</span>`;
+  } catch (err) {
+    info.innerHTML = `<span class="error">⚠️ No se pudo cargar desde GitHub: ${err.message}</span><br>
+      <span class="info">Puedes cargar el archivo localmente con el selector de abajo.</span>`;
+  }
+}
+
+function procesarTexto(texto) {
+  const lineas = texto
+    .split(/\r?\n/)
+    .map(l => l.trim())
+    .filter(l => l.length > 0 && l.includes("|"));
+
+  if (lineas.length === 0) {
+    alert("El archivo no tiene líneas válidas (formato Local|Visitante).");
+    return;
+  }
+
+  lineas.slice(0, 14).forEach((linea, i) => {
+    const [local, visitante] = linea.split("|").map(s => s.trim());
+    if (jornada[i]) {
+      jornada[i].local = local;
+      jornada[i].visitante = visitante;
+      jornada[i].fijo = "";
+      jornada[i].grupo = "";
+    }
+  });
+
+  elegidas = { A: [], B: [], C: [] };
+  document.getElementById("resultado").innerHTML = "";
+  renderTodo();
+
+  if (lineas.length < 14) {
+    alert(`El archivo tiene ${lineas.length} partidos. Se han rellenado los primeros ${lineas.length}.`);
+  }
+}
+
+// ---------------------------------------------------------------
+// NUEVA JORNADA: borra fijos, grupos, combos y resultado.
+// Mantiene los equipos y probabilidades.
+// ---------------------------------------------------------------
+function nuevaJornada() {
+  jornada.forEach(p => {
+    p.fijo = "";
+    p.grupo = "";
+  });
+  elegidas = { A: [], B: [], C: [] };
+  document.getElementById("resultado").innerHTML = "";
+  renderTodo();
+  document.getElementById("infoCarga").innerHTML =
+    `<span class="ok-txt">🧹 Jornada reiniciada. Marca 5 fijos para empezar.</span>`;
+}
+
+// ---------------------------------------------------------------
+// RENDER
+// ---------------------------------------------------------------
+function renderPartidos() {
+  const cont = document.getElementById("partidos");
+  cont.innerHTML = jornada.map((p, i) => {
+    const esFijo = p.fijo !== "";
+    const tieneGrupo = p.grupo !== "";
+    let cls = "";
+    if (esFijo) cls = "es-fijo";
+    else if (!tieneGrupo) cls = "es-libre-sin-grupo";
+    return `
+      <div class="fila ${cls}">
+        <span class="num">${i + 1}</span>
+        <input type="text" value="${p.local}" placeholder="Local" data-i="${i}" data-campo="local">
+        <input type="text" value="${p.visitante}" placeholder="Visitante" data-i="${i}" data-campo="visitante">
+        <select class="${esFijo ? "fijo-sel" : ""}" data-i="${i}" data-campo="fijo">
+          <option value="" ${p.fijo === "" ? "selected" : ""}>— libre —</option>
+          <option value="1" ${p.fijo === "1" ? "selected" : ""}>Fijo 1</option>
+          <option value="X" ${p.fijo === "X" ? "selected" : ""}>Fijo X</option>
+          <option value="2" ${p.fijo === "2" ? "selected" : ""}>Fijo 2</option>
+        </select>
+        <select class="${tieneGrupo ? "grupo-sel" : ""}" data-i="${i}" data-campo="grupo" ${esFijo ? "disabled" : ""}>
+          <option value="" ${p.grupo === "" ? "selected" : ""}>— sin grupo —</option>
+          <option value="A" ${p.grupo === "A" ? "selected" : ""}>Grupo A</option>
+          <option value="B" ${p.grupo === "B" ? "selected" : ""}>Grupo B</option>
+          <option value="C" ${p.grupo === "C" ? "selected" : ""}>Grupo C</option>
+        </select>
+      </div>
+    `;
+  }).join("");
+  document.getElementById("infoFijos").textContent =
+    `${fijos().length} de ${NUM_FIJOS} fijos · ${libres().length} libres · ${libresSinGrupo().length} sin grupo`;
+}
+
+function renderEstado() {
+  const nF = fijos().length;
+  const nL = libres().length;
+  const ok = { A: libresDeGrupo("A").length === 3, B: libresDeGrupo("B").length === 3, C: libresDeGrupo("C").length === 3 };
+  const combosOk = GRUPOS.every(g => elegidas[g].length === 2);
+  document.getElementById("estado").innerHTML = `
+    <span class="chip ${nF === NUM_FIJOS ? "ok" : "mal"}">Fijos: ${nF}/${NUM_FIJOS}</span>
+    <span class="chip ${nL === 9 ? "ok" : "mal"}">Libres: ${nL}/9</span>
+    <span class="chip ${ok.A ? "ok" : "mal"}">A: ${libresDeGrupo("A").length}/3</span>
+    <span class="chip ${ok.B ? "ok" : "mal"}">B: ${libresDeGrupo("B").length}/3</span>
+    <span class="chip ${ok.C ? "ok" : "mal"}">C: ${libresDeGrupo("C").length}/3</span>
+    <span class="chip ${combosOk ? "ok" : "mal"}">Combos: ${GRUPOS.map(g => elegidas[g].length).join("/")}</span>
+  `;
+}
+
+function renderGrupo(g) {
+  const cont = document.getElementById("grupo" + g);
+  if (!cont) return;
+  const libresG = libresDeGrupo(g);
+  if (libresG.length !== 3) {
+    cont.innerHTML = `<p class="info">Este grupo necesita 3 libres. Ahora tiene ${libresG.length}.</p>`;
+    return;
+  }
+  const combos = combosGrupo(g);
+
+  if (elegidas[g].length !== 2) {
+    elegidas[g] = combos.slice().sort((a, b) => b.p - a.p).slice(0, 2).map(c => c.bin);
+  }
+
+  const filas = libresG.map(p => {
+    const i = jornada.indexOf(p);
+    const [s0, s1] = dosSignos(p);
+    return `<div class="fila">
+      <span class="num">${i + 1}</span>
+      <input type="text" value="${p.local}" data-i="${i}" data-campo="local">
+      <input type="text" value="${p.visitante}" data-i="${i}" data-campo="visitante">
+      <span style="font-size:.75rem;color:#64748b;text-align:center">${s0} / ${s1}</span>
+      <span></span>
+    </div>`;
+  }).join("");
+
+  const combosHtml = combos.map(c => `
+    <label class="combo ${elegidas[g].includes(c.bin) ? "sel" : ""}">
+      <input type="checkbox" data-grupo="${g}" data-bin="${c.bin}"
+        ${elegidas[g].includes(c.bin) ? "checked" : ""}>
+      <span class="sig">${c.signos.join(" ")}</span>
+      <span class="p">${(c.p * 100).toFixed(2)} %</span>
+    </label>
+  `).join("");
+
+  const cob = combos.filter(c => elegidas[g].includes(c.bin)).reduce((a, c) => a + c.p, 0);
+  cont.innerHTML = `
+    <div class="grupo-titulo ${g}">3 libres del grupo ${g}</div>
+    ${filas}
+    <div class="grupo-titulo ${g}">2 combinaciones marcadas (pulsa otra para cambiarla)</div>
+    ${combosHtml}
+    <button class="btn-sug" onclick="sugerirCombos('${g}')">Volver a las 2 más probables</button>
+    <p class="info">Cobertura del grupo: <strong>${(cob * 100).toFixed(2)} %</strong></p>
+  `;
+}
+
+function renderGrupos() {
+  const zona = document.getElementById("zonaGrupos");
+  GRUPOS.forEach((g, idx) => {
+    const id = "bloque-grupo-" + g;
+    const el = document.getElementById(id);
+    if (el && libresDeGrupo(g).length === 0) {
+      el.remove();
+    }
+    if (!el && libresDeGrupo(g).length > 0) {
+      const div = document.createElement("div");
+      div.className = "bloque";
+      div.id = id;
+      div.innerHTML = `<h2><span class="badge">${idx + 2}</span> Grupo ${g}</h2><div id="grupo${g}"></div>`;
+      zona.appendChild(div);
+    }
+    if (document.getElementById("grupo" + g)) renderGrupo(g);
+  });
+}
+
+function renderTodo() {
+  renderPartidos();
+  renderEstado();
+  renderGrupos();
+  document.getElementById("btnGenerar").disabled = !validarSilencioso();
+}
+
+function validarSilencioso() {
+  if (fijos().length !== NUM_FIJOS) return false;
+  if (libres().length !== 9) return false;
+  for (const g of GRUPOS) {
+    if (libresDeGrupo(g).length !== 3) return false;
+    if (elegidas[g].length !== 2) return false;
+  }
+  return true;
+}
+
+function validar() {
+  if (fijos().length !== NUM_FIJOS) return `Debes marcar exactamente ${NUM_FIJOS} fijos (tienes ${fijos().length}).`;
+  if (libres().length !== 9) return `Deben quedar 9 libres (quedan ${libres().length}).`;
+  for (const g of GRUPOS) {
+    if (libresDeGrupo(g).length !== 3) return `El grupo ${g} debe tener 3 libres.`;
+    if (elegidas[g].length !== 2) return `Elige 2 combinaciones en el grupo ${g}.`;
+  }
+  return null;
+}
+
+function sugerirCombos(g) {
+  const combos = combosGrupo(g);
+  if (combos.length === 8) {
+    elegidas[g] = combos.slice().sort((a, b) => b.p - a.p).slice(0, 2).map(c => c.bin);
+    renderGrupo(g);
+    renderEstado();
+    document.getElementById("btnGenerar").disabled = !validarSilencioso();
+  }
+}
+
+function generar() {
+  const div = document.getElementById("resultado");
+  const err = validar();
+  if (err) { div.innerHTML = `<p class="error">⚠️ ${err}</p>`; return; }
+
+  const signosG = {}, probG = {};
+  GRUPOS.forEach(g => {
+    const combos = combosGrupo(g);
+    signosG[g] = elegidas[g].map(bin => combos.find(c => c.bin === bin).signos);
+    probG[g] = elegidas[g].reduce((a, bin) => a + combos.find(c => c.bin === bin).p, 0);
+  });
+
+  const libresOrdenados = [];
+  GRUPOS.forEach(g => libresDeGrupo(g).forEach(p => libresOrdenados.push({ p, g })));
+  const idxLibres = libresOrdenados.map(({ p }) => jornada.indexOf(p));
+
+  const apuestas = [];
+  for (let a = 0; a < 2; a++)
+    for (let b = 0; b < 2; b++)
+      for (let c = 0; c < 2; c++) {
+        const sel = { A: a, B: b, C: c };
+        const signosLibres = libresOrdenados.map(({ g, p }) => {
+          const k = libresDeGrupo(g).indexOf(p);
+          return signosG[g][sel[g]][k];
+        });
+        const apuesta = jornada.map(p => p.fijo || null);
+        idxLibres.forEach((i, k) => { apuesta[i] = signosLibres[k]; });
+        apuestas.push(apuesta);
+      }
+
+  const pLibres = GRUPOS.reduce((a, g) => a * probG[g], 1);
+
+  let html = `<p class="info"><strong>${apuestas.length} apuestas</strong> · Coste: <strong>${(apuestas.length * 0.75).toFixed(2)} €</strong></p>`;
+  html += `<p class="info">P(9 libres si los 5 fijos salen): <strong>${(pLibres * 100).toFixed(3)} %</strong></p>`;
+  html += `<p class="info">Cobertura: ${GRUPOS.map(g => `${g}: ${(probG[g] * 100).toFixed(2)} %`).join(" · ")}</p>`;
+  html += `<div style="margin-top:.8rem"></div>`;
+
+  apuestas.forEach((ap, idx) => {
+    const signos = ap.map((s, i) => jornada[i].fijo ? `<span class="f">${s}</span>` : s);
+    const p = ap.reduce((a, s, i) => a * jornada[i].prob[s], 1);
+    html += `<div class="apuesta">
+      <span class="n">${idx + 1}.</span>
+      <span>${signos.join(" ")}</span>
+      <span class="pr">${(p * 100).toExponential(2)} %</span>
+    </div>`;
+  });
+
+  div.innerHTML = html;
+}
+
+// ---------------------------------------------------------------
+// ARRANQUE + EVENTOS
+// ---------------------------------------------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  renderTodo();
+  cargarDesdeGitHub();
+
+  const input = document.getElementById("filePartidos");
+  input.addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      procesarTexto(ev.target.result);
+      document.getElementById("infoCarga").innerHTML =
+        `<span class="ok-txt">✅ Partidos cargados desde archivo local</span>`;
+    };
+    reader.readAsText(file, "UTF-8");
+  });
+
+  document.body.addEventListener("input", e => {
+    const t = e.target;
+    const i = parseInt(t.dataset.i);
+    if (isNaN(i) || !t.dataset.campo) return;
+    if (t.dataset.campo === "local") jornada[i].local = t.value;
+    else if (t.dataset.campo === "visitante") jornada[i].visitante = t.value;
+  });
+
+  document.body.addEventListener("change", e => {
+    const t = e.target;
+    const i = parseInt(t.dataset.i);
+
+    if (!isNaN(i) && t.dataset.campo === "fijo") {
+      const nActuales = fijos().length;
+      if (t.value !== "" && jornada[i].fijo === "" && nActuales >= NUM_FIJOS) {
+        t.value = jornada[i].fijo;
+        alert(`Ya tienes ${NUM_FIJOS} fijos. Quita uno antes de marcar otro.`);
+        return;
+      }
+      jornada[i].fijo = t.value;
+      if (t.value !== "") jornada[i].grupo = "";
+      renderTodo();
+      return;
+    }
+
+    if (!isNaN(i) && t.dataset.campo === "grupo") {
+      const g = t.value;
+      if (g !== "") {
+        const nG = libresDeGrupo(g).length;
+        if (nG >= 3 && jornada[i].grupo !== g) {
+          t.value = jornada[i].grupo;
+          alert(`El grupo ${g} ya tiene 3 libres.`);
+          return;
+        }
+      }
+      jornada[i].grupo = g;
+      renderTodo();
+      return;
+    }
+
+    if (t.matches('input[type="checkbox"][data-grupo]')) {
+      const g = t.dataset.grupo, bin = t.dataset.bin;
+
+      if (t.checked) {
+        if (elegidas[g].length >= 2) elegidas[g].shift();
+        elegidas[g].push(bin);
+      } else {
+        elegidas[g] = elegidas[g].filter(x => x !== bin);
+        const combos = combosGrupo(g);
+        const siguiente = combos
+          .filter(c => !elegidas[g].includes(c.bin))
+          .sort((a, b) => b.p - a.p)[0];
+        if (siguiente) elegidas[g].push(siguiente.bin);
+      }
+
+      renderGrupo(g);
+      renderEstado();
+      document.getElementById("btnGenerar").disabled = !validarSilencioso();
+    }
+  });
+});
+</script>
+
+</body>
+</html>
